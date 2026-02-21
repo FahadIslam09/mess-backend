@@ -25,3 +25,19 @@ exports.deleteBazar = async (req, res, next) => {
     res.status(200).json({ success: true, data: {} });
   } catch (error) { next(error); }
 };
+
+exports.updateBazar = async (req, res, next) => {
+  try {
+    const bazar = await Bazar.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!bazar) return res.status(404).json({ success: false, message: 'Bazar entry not found' });
+    res.status(200).json({ success: true, data: bazar });
+  } catch (error) { next(error); }
+};
+
+exports.deleteBazar = async (req, res, next) => {
+  try {
+    const bazar = await Bazar.findByIdAndDelete(req.params.id);
+    if (!bazar) return res.status(404).json({ success: false, message: 'Bazar entry not found' });
+    res.status(200).json({ success: true, data: {} });
+  } catch (error) { next(error); }
+};
