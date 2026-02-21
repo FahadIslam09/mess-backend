@@ -5,6 +5,7 @@ const cors = require('cors');
 
 // Import Routes
 const memberRoutes = require('./routes/memberRoutes');
+const depositRoutes = require('./routes/depositRoutes');
 const mealRoutes = require('./routes/mealRoutes');
 const bazarRoutes = require('./routes/bazarRoutes');
 const reportRoutes = require('./routes/reportRoutes');
@@ -22,6 +23,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Routes
 app.use('/api/members', memberRoutes);
+app.use('/api/deposits', depositRoutes);
 app.use('/api/meals', mealRoutes);
 app.use('/api/bazar', bazarRoutes);
 app.use('/api/report', reportRoutes);

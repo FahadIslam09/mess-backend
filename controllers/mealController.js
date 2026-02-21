@@ -30,3 +30,25 @@ exports.getTotalMealCount = async (req, res, next) => {
     res.status(200).json({ success: true, totalMeals: total });
   } catch (error) { next(error); }
 };
+
+exports.updateMeal = async (req, res, next) => {
+  try {
+    // totalMeals অটো-ক্যালকুলেট করার জন্য pre-save ট্রিগার করতে আমরা findById এর পর save() কল করবো
+    const meal = await Meal.findById(req.params.id);
+    if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
+
+    meal.mealType = req.body.mealType || meal.mealType;
+    meal.members = req.body.members || meal.members;
+    
+    await meal.save();
+    res.status(200).json({ success: true, data: meal });
+  } catch (error) { next(error); }
+};
+
+exports.deleteMeal = async (req, res, next) => {
+  try {
+    const meal = await Meal.findByIdAndDelete(req.params.id);
+    if (!meal) return res.status(404).json({ success: false, message: 'Meal not found' });
+    res.status(200).json({ success: true, data: {} });
+  } catch (error) { next(error); }
+};
