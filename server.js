@@ -9,6 +9,7 @@ const depositRoutes = require('./routes/depositRoutes');
 const mealRoutes = require('./routes/mealRoutes');
 const bazarRoutes = require('./routes/bazarRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const managerRoutes = require('./routes/managerRoutes');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/deposits', depositRoutes);
 app.use('/api/meals', mealRoutes);
 app.use('/api/bazar', bazarRoutes);
 app.use('/api/report', reportRoutes);
+app.use('/api/manager', managerRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
