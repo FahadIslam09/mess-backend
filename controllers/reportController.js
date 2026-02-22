@@ -2,24 +2,43 @@ const Meal = require('../models/Meal');
 const Bazar = require('../models/Bazar');
 const Deposit = require('../models/Deposit');
 const Member = require('../models/Member');
-const Manager = require('../models/Manager'); // নতুন যুক্ত হলো
+const Manager = require('../models/Manager');
 
 exports.getMonthlyReport = async (req, res, next) => {
   try {
-    const { year, month } = req.query;
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
-    const dateQuery = { date: { $gte: startDate, $lte: endDate } };
+    const { startDate, endDate, year, month } = req.query;
+    let dateQuery = {};
+    let managerYear = year;
+    let managerMonth = month;
 
-    // ১. নির্দিষ্ট মাসের ম্যানেজার খুঁজে বের করা
-    const currentManager = await Manager.findOne({ year, month });
+    // ১. যদি ফ্রন্টএন্ড থেকে নতুন গ্লোবাল ডেট ফিল্টার (startDate, endDate) আসে
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        // শেষের দিনের রাত ১১:৫৯ পর্যন্ত ডেটা নেওয়ার জন্য
+        end.setHours(23, 59, 59, 999);
+        
+        dateQuery = { date: { $gte: start, $lte: end } };
+        
+        // ম্যানেজার খোঁজার জন্য শুরুর তারিখের মাস ও বছর ব্যবহার করা হলো
+        managerYear = start.getFullYear();
+        managerMonth = start.getMonth() + 1; 
+    } else {
+        // ২. যদি আগের মত শুধু year এবং month দিয়ে রিকোয়েস্ট আসে (সেফটির জন্য রাখা হলো)
+        const start = new Date(year, month - 1, 1);
+        const end = new Date(year, month, 0, 23, 59, 59);
+        dateQuery = { date: { $gte: start, $lte: end } };
+    }
+
+    // ৩. নির্দিষ্ট মাসের ম্যানেজার খুঁজে বের করা
+    const currentManager = await Manager.findOne({ year: managerYear, month: managerMonth });
     const managerId = currentManager ? currentManager.member.toString() : null;
 
-    // ২. মোট খরচ
+    // ৪. মোট খরচ (Bazar থেকে)
     const bazars = await Bazar.find(dateQuery);
     const totalExpense = bazars.reduce((sum, b) => sum + b.amount, 0);
 
-    // ৩. মেম্বারদের লিস্ট তৈরি 
+    // ৫. মেম্বারদের লিস্ট তৈরি 
     const allMembers = await Member.find({ isActive: true });
     const memberStats = {};
     allMembers.forEach(m => {
@@ -28,7 +47,7 @@ exports.getMonthlyReport = async (req, res, next) => {
       };
     });
 
-    // ৪. মেম্বারদের মিল যোগ করা
+    // ৬. মেম্বারদের মিল যোগ করা
     const meals = await Meal.find(dateQuery).populate('members', 'name');
     let totalMeals = 0; 
     meals.forEach(meal => {
@@ -40,7 +59,7 @@ exports.getMonthlyReport = async (req, res, next) => {
       });
     });
 
-    // ৫. মিল রেট হিসাব করা (ম্যানেজারের মিল বাদ দিয়ে)
+    // ৭. মিল রেট হিসাব করা (ম্যানেজারের মিল বাদ দিয়ে)
     let totalPayableMeals = 0;
     Object.values(memberStats).forEach(m => {
       if (m.memberId.toString() !== managerId) { // ম্যানেজার না হলে মিল যোগ হবে
@@ -50,13 +69,15 @@ exports.getMonthlyReport = async (req, res, next) => {
     
     const mealRate = totalPayableMeals > 0 ? (totalExpense / totalPayableMeals) : 0;
 
-    // ৬. ডিপোজিট যোগ করা
+    // ৮. ডিপোজিট যোগ করা
     const deposits = await Deposit.find(dateQuery);
     deposits.forEach(d => {
-      if (memberStats[d.member.toString()]) memberStats[d.member.toString()].depositedAmount += d.amount;
+      if (memberStats[d.member.toString()]) {
+         memberStats[d.member.toString()].depositedAmount += d.amount;
+      }
     });
 
-    // ৭. Payable এবং Balance হিসাব করা
+    // ৯. Payable এবং Balance হিসাব করা
     const memberDetails = Object.values(memberStats).map(m => {
       const isManager = m.memberId.toString() === managerId;
       const payableAmount = isManager ? 0 : Number((m.totalMeals * mealRate).toFixed(2));
