@@ -9,11 +9,21 @@ exports.addDeposit = async (req, res, next) => {
 
 exports.getDepositsByMonth = async (req, res, next) => {
   try {
-    const { year, month } = req.query;
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
+    const { startDate, endDate, year, month } = req.query;
+    let dateQuery = {};
 
-    const deposits = await Deposit.find({ date: { $gte: startDate, $lte: endDate } }).populate('member', 'name room');
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateQuery = { date: { $gte: start, $lte: end } };
+    } else {
+        const start = new Date(year, month - 1, 1);
+        const end = new Date(year, month, 0, 23, 59, 59);
+        dateQuery = { date: { $gte: start, $lte: end } };
+    }
+
+    const deposits = await Deposit.find(dateQuery).populate('member', 'name room');
     res.status(200).json({ success: true, count: deposits.length, data: deposits });
   } catch (error) { next(error); }
 };
