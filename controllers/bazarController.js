@@ -25,7 +25,11 @@ exports.getBazarsByMonth = async (req, res, next) => {
         dateQuery = { date: { $gte: start, $lte: end } };
     }
 
-    const bazars = await Bazar.find(dateQuery).sort({ date: 1 });
+    // ম্যাজিক: populate('shopper') দিয়ে বাজারের সাথে মেম্বারের নাম ও রুম নাম্বার যুক্ত করে দেওয়া হচ্ছে
+    const bazars = await Bazar.find(dateQuery)
+                              .populate('shopper', 'name room')
+                              .sort({ date: 1 });
+                              
     res.status(200).json({ success: true, count: bazars.length, data: bazars });
   } catch (error) { next(error); }
 };
