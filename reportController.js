@@ -6,7 +6,6 @@ const Manager = require('../models/Manager');
 
 exports.getMonthlyReport = async (req, res, next) => {
   try {
-    // ফ্রন্টএন্ড থেকে আসা Settings এর ডেটাগুলো রিসিভ করা হচ্ছে
     const { startDate, endDate, year, month, calcMode, rateBreakfast, rateLunch, rateDinner, rateSehri, rateIftar } = req.query;
     
     let dateQuery = {};
@@ -37,28 +36,30 @@ exports.getMonthlyReport = async (req, res, next) => {
     allMembers.forEach(m => {
       memberStats[m._id.toString()] = { 
         memberId: m._id, name: m.name, room: m.room, totalMeals: 0, depositedAmount: 0,
-        fixedTotalCost: 0 // ম্যাজিক: Fixed রেটের বিল জমানোর জন্য নতুন ফিল্ড
+        fixedTotalCost: 0 
       };
     });
 
-    // Fixed সিস্টেমের রেটগুলো সাজিয়ে নেওয়া
+    // ম্যাজিক: সব রেটের নাম ছোট হাতের (lowercase) করে দেওয়া হলো
     const fixedRates = {
-        Breakfast: Number(rateBreakfast) || 0,
-        Lunch: Number(rateLunch) || 0,
-        Dinner: Number(rateDinner) || 0,
-        Sehri: Number(rateSehri) || 0,
-        Iftar: Number(rateIftar) || 0
+        breakfast: Number(rateBreakfast) || 0,
+        lunch: Number(rateLunch) || 0,
+        dinner: Number(rateDinner) || 0,
+        sehri: Number(rateSehri) || 0,
+        iftar: Number(rateIftar) || 0
     };
 
     const meals = await Meal.find(dateQuery).populate('members', 'name');
     let totalMeals = 0; 
     meals.forEach(meal => {
-      const costForThisMeal = fixedRates[meal.mealType] || 0; // এই বেলার জন্য কত টাকা চার্জ
+      // ম্যাজিক: ডাটাবেস থেকে আসা নামকেও ছোট হাতের করে মিলিয়ে নেওয়া হচ্ছে
+      const safeMealType = (meal.mealType || '').trim().toLowerCase();
+      const costForThisMeal = fixedRates[safeMealType] || 0; 
       
       meal.members.forEach(m => {
         if (memberStats[m._id.toString()]) {
           memberStats[m._id.toString()].totalMeals += 1;
-          memberStats[m._id.toString()].fixedTotalCost += costForThisMeal; // Fixed হলে সরাসরি টাকা যোগ হবে
+          memberStats[m._id.toString()].fixedTotalCost += costForThisMeal; 
           totalMeals += 1;
         }
       });
@@ -72,7 +73,7 @@ exports.getMonthlyReport = async (req, res, next) => {
     });
     
     const mealRate = totalPayableMeals > 0 ? (totalExpense / totalPayableMeals) : 0;
-    const activeCalcMode = calcMode || 'average'; // ডিফল্ট Average
+    const activeCalcMode = calcMode || 'average'; 
 
     const deposits = await Deposit.find(dateQuery);
     deposits.forEach(d => {
@@ -81,16 +82,15 @@ exports.getMonthlyReport = async (req, res, next) => {
       }
     });
 
-    // Payable এবং Balance হিসাব করা (Average vs Fixed)
     const memberDetails = Object.values(memberStats).map(m => {
       const isManager = m.memberId.toString() === managerId;
       let payableAmount = 0;
 
       if (!isManager) {
           if (activeCalcMode === 'fixed') {
-              payableAmount = m.fixedTotalCost; // Fixed সিস্টেম হলে
+              payableAmount = m.fixedTotalCost; 
           } else {
-              payableAmount = Number((m.totalMeals * mealRate).toFixed(2)); // Average সিস্টেম হলে
+              payableAmount = Number((m.totalMeals * mealRate).toFixed(2)); 
           }
       }
 
