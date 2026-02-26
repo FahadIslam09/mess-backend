@@ -3,10 +3,15 @@ const Bazar = require('../models/Bazar');
 const Deposit = require('../models/Deposit');
 const Member = require('../models/Member');
 const Manager = require('../models/Manager');
+const Setting = require('../models/Setting'); // গ্লোবাল সেটিংস মডেল যুক্ত করা হলো
 
 exports.getMonthlyReport = async (req, res, next) => {
   try {
-    const { startDate, endDate, year, month, calcMode, rateBreakfast, rateLunch, rateDinner, rateSehri, rateIftar } = req.query;
+    // ফ্রন্টএন্ড থেকে শুধু তারিখগুলো রিসিভ করা হচ্ছে
+    const { startDate, endDate, year, month } = req.query;
+    
+    // ম্যাজিক: সরাসরি ডাটাবেস থেকে গ্লোবাল সেটিংস নিয়ে আসা হচ্ছে!
+    const appSettings = await Setting.findOne() || {};
     
     let dateQuery = {};
     let managerYear = year;
@@ -40,19 +45,21 @@ exports.getMonthlyReport = async (req, res, next) => {
       };
     });
 
-    // ম্যাজিক: সব রেটের নাম ছোট হাতের (lowercase) করে দেওয়া হলো
+    // Fixed সিস্টেমের রেটগুলো ডাটাবেস থেকে সাজিয়ে নেওয়া (Case-insensitive)
     const fixedRates = {
-        breakfast: Number(rateBreakfast) || 0,
-        lunch: Number(rateLunch) || 0,
-        dinner: Number(rateDinner) || 0,
-        sehri: Number(rateSehri) || 0,
-        iftar: Number(rateIftar) || 0
+        breakfast: Number(appSettings.rateBreakfast) || 0,
+        lunch: Number(appSettings.rateLunch) || 0,
+        dinner: Number(appSettings.rateDinner) || 0,
+        sehri: Number(appSettings.rateSehri) || 0,
+        iftar: Number(appSettings.rateIftar) || 0
     };
+
+    const activeCalcMode = appSettings.calcMode || 'average';
 
     const meals = await Meal.find(dateQuery).populate('members', 'name');
     let totalMeals = 0; 
     meals.forEach(meal => {
-      // ম্যাজিক: ডাটাবেস থেকে আসা নামকেও ছোট হাতের করে মিলিয়ে নেওয়া হচ্ছে
+      // ডাটাবেস থেকে আসা নামকেও ছোট হাতের করে মিলিয়ে নেওয়া হচ্ছে
       const safeMealType = (meal.mealType || '').trim().toLowerCase();
       const costForThisMeal = fixedRates[safeMealType] || 0; 
       
@@ -73,7 +80,6 @@ exports.getMonthlyReport = async (req, res, next) => {
     });
     
     const mealRate = totalPayableMeals > 0 ? (totalExpense / totalPayableMeals) : 0;
-    const activeCalcMode = calcMode || 'average'; 
 
     const deposits = await Deposit.find(dateQuery);
     deposits.forEach(d => {
@@ -88,9 +94,9 @@ exports.getMonthlyReport = async (req, res, next) => {
 
       if (!isManager) {
           if (activeCalcMode === 'fixed') {
-              payableAmount = m.fixedTotalCost; 
+              payableAmount = m.fixedTotalCost; // Fixed সিস্টেম হলে
           } else {
-              payableAmount = Number((m.totalMeals * mealRate).toFixed(2)); 
+              payableAmount = Number((m.totalMeals * mealRate).toFixed(2)); // Average সিস্টেম হলে
           }
       }
 

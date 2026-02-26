@@ -11,6 +11,7 @@ const mealRoutes = require('./routes/mealRoutes');
 const bazarRoutes = require('./routes/bazarRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const managerRoutes = require('./routes/managerRoutes');
+const settingRoutes = require('./routes/settingRoutes');
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use('/api/meals', mealRoutes);
 app.use('/api/bazar', bazarRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/manager', managerRoutes);
+app.use('/api/settings', settingRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
