@@ -40,7 +40,7 @@ exports.getMonthlyReport = async (req, res, next) => {
     const memberStats = {};
     allMembers.forEach(m => {
       memberStats[m._id.toString()] = { 
-        memberId: m._id, name: m.name, room: m.room, totalMeals: 0, depositedAmount: 0,
+        memberId: m._id, name: m.name, room: m.room, phone: m.phone, totalMeals: 0, depositedAmount: 0, // <-- phone: m.phone যোগ করা হলো
         fixedTotalCost: 0 
       };
     });
