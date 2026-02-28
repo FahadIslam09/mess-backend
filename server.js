@@ -69,6 +69,11 @@ const protect = (req, res, next) => {
 // গার্ডটিকে পুরো অ্যাপে চালু করে দেওয়া হলো
 app.use(protect);
 
+// UptimeRobot বা Health Check এর জন্য রুট (/)
+app.get('/', (req, res) => {
+    res.status(200).send('Mess Management Backend is running perfectly! 🚀');
+});
+
 // Routes
 app.use('/api/members', memberRoutes);
 app.use('/api/deposits', depositRoutes);
