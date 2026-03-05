@@ -8,9 +8,11 @@ const settingSchema = new mongoose.Schema({
     rateSehri: { type: Number, default: 40 },
     rateIftar: { type: Number, default: 50 },
     
-    // নতুন যুক্ত করা হলো: Global Date Sync
     periodStart: { type: String, default: '' }, 
-    periodEnd: { type: String, default: '' }
+    periodEnd: { type: String, default: '' },
+    
+    // 🌐 ম্যাজিক: গ্লোবাল কন্ট্রোলের জন্য নতুন ফিল্ড
+    showBazarReport: { type: Boolean, default: true }
 });
 
 module.exports = mongoose.model('Setting', settingSchema);
